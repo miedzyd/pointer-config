@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+_Name=Pointer Config
+_Comment=Configure pointer devices
+Exec=pointer-config
+Icon=preferences-desktop-peripherals
+Terminal=false
+Type=Application
+Categories=Settings;HardwareSettings;GTK;

@@ -1,0 +1,8 @@
+recursive-include applications pointer-config.desktop.in
+recursive-exclude applications pointer-config.desktop
+recursive-include autostart pointer-config.desktop.in
+recursive-exclude autostart pointer-config.desktop
+graft i18n
+prune locale
+include MANIFEST.in
+include post-script

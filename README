@@ -1,0 +1,37 @@
+Pointer Config is a small Gtk application that configures xinput for a given
+Gtk device type. In particularly useful for graphics tablets.
+
+    * Uses input from "pointer grabs" to change the bounds.
+    * Add margins. Useful for screens that are smaller than a tablet.
+    * Changes xinput properties.
+    * Automatically configure device when plugged in. (not working right now)
+    * Show an outline around the bounds.
+
+Requirements
+
+py2cairo >= 1.8.10
+xinput (utility) >= 1.5.99.901 
+gobject-introspection
+    Gtk >= 3.0
+    Gio >= 2.0
+    GLib >= 2.0
+    Gdk >= 3.0
+    GObject >= 2.0
+    
+Run without installing (i18n doesn't work)
+
+cd <dirname>/pointer-config
+glib-compile-schemas ./
+export GSETTINGS_SCHEMA_DIR=$PWD XDG_DATA_HOME=$PWD PYTHONPATH=$PWD 
+./script/pointer-config
+
+Build RPM
+
+# Requires msgfmt, intltool-merge and rpmbuild
+XDG_DATA_DIRS=/usr/share python setup.py bdist_rpm
+# if /usr/share is your system's data base directory
+
+Gdk Wrapper
+
+At the time of writing this, gdk_x11_device_get_id is missing from GdkX11
+on my preferred distro. This is why Gdk.py was needed.
