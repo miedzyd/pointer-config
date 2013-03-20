@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (C) 2012 Daniel Miedzyblocki
+# Copyright (C) 2012, 2013 Daniel Miedzyblocki
 #
 # This file is part of Pointer Config.
 #
@@ -58,7 +58,7 @@ append((data, NAME), (NAME, NAME + '.glade'))
 
 setup(
     name=NAME,
-    version='0.1',
+    version='0.0.2',
     description='Basic configurion for pointer devices using GTK+ and XInput',
     author='Daniel Miedzyblocki',
     packages=('pointerconfig',),

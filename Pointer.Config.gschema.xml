@@ -1,24 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
-  <enum id="config.Pointer.mode">
-    <value nick="absolute" value="0"/>
-    <value nick="relative" value="1"/>
-  </enum>
   <enum id="config.Pointer.rotation">
     <value nick="normal" value="0"/>
     <value nick="counterclockwise" value="1"/>
     <value nick="clockwise" value="2"/>
     <value nick="180 degrees" value="3"/>
   </enum>
-  <enum id="config.Pointer.monitors">
-    <value nick="all" value="0"/>
-    <value nick="many" value="1"/>
-    <value nick="one" value="2"/>
-  </enum>
-  <enum id="config.Pointer.action">
-    <value nick="move" value="0"/>
-    <value nick="position" value="1"/>
-    <value nick="scale" value="2"/>
+  <enum id="config.Pointer.mode">
+    <value nick="absolute" value="0"/>
+    <value nick="relative" value="1"/>
   </enum>
   <schema path="/pointer-config/" id="config.Pointer">
     <child schema="config.Pointer.device" name="mouse"/>
@@ -31,31 +21,15 @@
   <schema id="config.Pointer.device">
     <key name="rotation" enum="config.Pointer.rotation">
       <default>'normal'</default>
-      <summary>Device type rotation</summary>
+      <summary>Rotation used in calculating the matrix</summary>
     </key>
-    <key name="horizontal-bounds" type="b">
-      <default>true</default>
-      <summary>Should action apply to horizontal bounds</summary>
+    <key name="bounds" type="(iiuu)">
+      <default>(0,0,500,500)</default>
+      <summary>Bounds used in calculating the matrix</summary>
     </key>
-    <key name="vertical-bounds" type="b">
-      <default>true</default>
-      <summary>Should action apply to vertical bounds</summary>
-    </key>
-    <key name="monitors" enum="config.Pointer.monitors">
-      <default>'all'</default>
-      <summary>Number of monitors action applies to</summary>
-    </key>
-    <key name="action" enum="config.Pointer.action">
-      <default>'position'</default>
-      <summary>Action applied to selected axes</summary>
-    </key>
-    <key name="horizontal-margin" type="b">
-      <default>false</default>
-      <summary>Should given value apply to horizontal margins</summary>
-    </key>
-    <key name="vertical-margin" type="b">
-      <default>false</default>
-      <summary>Should given value apply to vertical margins</summary>
+    <key name="matrix" type="(dddddd)">
+      <default>(1.0,0.0,0.0,1.0,0.0,0.0)</default>
+      <summary>Transformation matrix currently applied</summary>
     </key>
     <key name="mode" enum="config.Pointer.mode">
       <default>'absolute'</default>
@@ -81,18 +55,6 @@
       <range min="1" max="1000"/>
       <default>5</default>
       <summary>Outline size in pixels</summary>
-    </key>
-    <key name="bounds" type="(dddd)">
-      <default>(0.0,0.0,500.0,500.0)</default>
-      <summary>Bounds currently applied</summary>
-    </key>
-    <key name="margin" type="(dddd)">
-      <default>(0.0,0.0,0.0,0.0)</default>
-      <summary>Margin currently applied</summary>
-    </key>
-    <key name="matrix" type="(dddddd)">
-      <default>(1.0,0.0,0.0,1.0,0.0,0.0)</default>
-      <summary>Transformation matrix currently applied</summary>
     </key>
   </schema>
 </schemalist>

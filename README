@@ -1,11 +1,10 @@
-Pointer Config is a small Gtk application that configures xinput for a given
-Gtk device type. In particularly useful for graphics tablets.
+Pointer Config is a small Gtk+ application that configures groups of Gtk device 
+types. Particularly useful for graphics tablets.
 
-    * Uses input from "pointer grabs" to change the bounds.
-    * Add margins. Useful for screens that are smaller than a tablet.
-    * Changes xinput properties.
-    * Automatically configure device when plugged in. (not working right now)
-    * Show an outline around the bounds.
+    * Rotate and resizes bounds
+    * Change xinput properties
+    * Automatically configure device when plugged in (not working right now)
+    * Show an outline around the bounds
 
 Requirements
 

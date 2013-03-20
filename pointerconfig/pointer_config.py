@@ -1,4 +1,4 @@
-# Copyright (C) 2012 Daniel Miedzyblocki
+# Copyright (C) 2012, 2013 Daniel Miedzyblocki
 #
 # This file is part of Pointer Config.
 #
@@ -17,9 +17,9 @@
 
 import shlex
 import subprocess
+import sys
 import math
 import array
-import sys
 import gettext
 
 from pointerconfig import Gdk
@@ -30,70 +30,6 @@ from gi.repository import Gio
 from gi.repository import GLib
 
 
-class Rectangle(object):
-
-    def __init__(self, x=0, y=0, x2=0, y2=0):
-        self.x, self.y, self.x2, self.y2 = (x, y, x2, y2)
-
-    def sort(self, x, y, x2, y2, minimum=0):
-        self.x, _, self.x2, _ = sorted((x, x + minimum, x2, x2 + minimum))
-        self.y, _, self.y2, _ = sorted((y, y + minimum, y2, y2 + minimum))
-
-    def transform(self, matrix, callback=lambda v: v, minimum=0):
-        x, y = matrix.transform_point(self.x, self.y)
-        x2, y2 = matrix.transform_point(self.x2, self.y2)
-        self.sort(*map(callback, (x, y, x2, y2, minimum)))
-
-    def __getitem__(self, key):
-        return getattr(self, key)
-
-    width = property(lambda s: s.x2 - s.x)
-    height = property(lambda s: s.y2 - s.y)
-
-
-class GrabDialog(Gtk.MessageDialog):
-
-    def __init__(self, parent, name, device):
-        N_ = lambda m: m
-        text = dict(many=N_('Click twice in separate monitor areas to select'),
-                    one=N_('Click in monitor area to select'),
-                    move=N_('Click once to move mapped area'),
-                    position=N_('Click twice to position mapping'))
-        Gtk.MessageDialog.__init__(self, parent, 0, Gtk.MessageType.INFO, 
-                                   Gtk.ButtonsType.CANCEL, _(text[name]))
-        self.set_destroy_with_parent(True)
-        self.set_icon_name('preferences-desktop-peripherals')
-        self._last = dict(one=True, move=True).get(name)
-        self.connect('map-event', self._map_event, device)
-        self.handler = self.connect('button-press-event', self._button_press)
-        self.connect('grab-broken-event', self._grab_broken)
-
-    def _map_event(self, widget, event, device):
-        status = device.grab(
-            self.get_window(), Gdk.GrabOwnership.NONE, False,
-            Gdk.EventMask.BUTTON_PRESS_MASK, 
-            Gdk.Cursor(Gdk.CursorType.CROSSHAIR), Gdk.CURRENT_TIME)
-            # Gtk.get_current_event_time()
-        if status != Gdk.GrabStatus.SUCCESS:
-            self.response(Gtk.ResponseType.NONE)
-        return False
-
-    def _button_press(self, widget, event):
-        x, y = (event.x_root, event.y_root)
-        self.pick = getattr(self, 'pick', Rectangle(x, y, x, y))
-        if self._last:
-            self.pick.sort(self.pick.x, self.pick.y, x, y)
-            self.disconnect(self.handler)
-            self.response(Gtk.ResponseType.OK)
-        self._last = True
-        return False
-
-    def _grab_broken(self, widget, event):
-        self.disconnect(self.handler)
-        self.response(Gtk.ResponseType.NONE)
-        return False
-
-
 class OutlineWindow(Gtk.Window):
     def __init__(self):
         Gtk.Window.__init__(self)
@@ -101,24 +37,30 @@ class OutlineWindow(Gtk.Window):
         self.set_type_hint(Gdk.WindowTypeHint.DOCK)
 
 
-class Outline(Rectangle):
+class Outline(object):
     def __init__(self):
-        Rectangle.__init__(self)
         self._top, self._bottom = (OutlineWindow(), OutlineWindow())
         self._left, self._right = (OutlineWindow(), OutlineWindow())
 
+    def transform(self, matrix, width, height):
+        scale = cairo.Matrix(xx=width, yy=height)
+        matrix = matrix.multiply(scale)
+        x, y = map(round, matrix.transform_point(0, 0))
+        x2, y2 = map(round, matrix.transform_point(1, 1))
+        self.x, self.width = (min(x, x2), max(abs(x - x2), 1))
+        self.y, self.height = (min(y, y2), max(abs(y - y2), 1))
+
     def move(self, size):
         self._top.move(self.x, self.y - size)
-        self._bottom.move(self.x, self.y2)
+        self._bottom.move(self.x, self.y + self.height)
         self._left.move(self.x - size, self.y)
-        self._right.move(self.x2, self.y)
+        self._right.move(self.x + self.width, self.y)
 
     def resize(self, size):
         self._top.resize(self.width, size)
         self._bottom.resize(self.width, size)
         self._left.resize(size, self.height)
         self._right.resize(size, self.height)
-        self.move(size)
 
     def __getattr__(self, name):
         def callback(*arg):
@@ -126,21 +68,14 @@ class Outline(Rectangle):
                 getattr(window, name)(*arg)
         return callback
 
-def get_params(matrix, mode, properties, everything=True, schema=None):
-    if schema:
-        matrix = list(schema.get_value('matrix'))
-        mode = schema.get_enum('mode')
-        properties = schema.get_value('property')
 
+def get_params(schema):
+    matrix = list(schema.get_value('matrix'))
     matrix = matrix[0::2] + matrix[1::2] + [0, 0, 1]
     matrix = ['Coordinate Transformation Matrix'] + map(str, matrix)
-    prop = list()
-    if everything:
-        for active, param in properties:
-            if active:
-                prop.append(shlex.split(param))
-        return (matrix, [('ABSOLUTE', 'RELATIVE')[mode]], prop)
-    return (matrix, False, tuple())
+    prop = [shlex.split(p) for a, p in schema.get_value('property') if a]
+    mode = [('ABSOLUTE', 'RELATIVE')[schema.get_enum('mode')]]
+    return (matrix, mode, prop)
 
 
 def call_xinput(device, setup):
@@ -154,23 +89,11 @@ def call_xinput(device, setup):
                 xid = [str(GdkX11.gdk_x11_device_get_id(obj))]
                 if matrix:
                     subprocess.call(set_prop + xid + matrix)
-                if mode:
                     subprocess.call(set_mode + xid + mode)
                 for param in prop:
                     subprocess.call(set_prop + xid + param)
     except OSError:
         sys.exit('cannot find xinput program')
-
-
-def rotate_point(degrees, x, y):
-    matrix = cairo.Matrix(x0=x, y0=y) # translate
-    radians = math.radians(degrees)
-    cos = round(math.cos(radians))
-    sin = round(math.sin(radians))
-    rotate = cairo.Matrix(cos, -sin, sin, cos, 0, 0)
-    matrix = rotate.multiply(matrix)
-    matrix.translate(-x, -y)
-    return matrix
 
 
 class PointerConfig(Gtk.Application):
@@ -190,25 +113,24 @@ class PointerConfig(Gtk.Application):
     def device_changed(self, manager, device):
         self.manager = manager
         key = device.set_source().value_nick
-        if reduce(lambda x, y: x or y[0] == key, self.store_list, False):
+        if reduce(lambda x, y: x or y[0] == key, self.store_type, False):
             child = self.settings.get_child(key)
             if child.get_boolean('auto'):
-                param = get_params(None, None, None, schema=child)
+                param = get_params(child)
                 call_xinput((device,), {key:param})
 
-    def reset_outline(self, screen, reset=True):
+    def reset_outline(self, screen):
         self.screen = screen
-        if reset:
-            m = cairo.Matrix(xx=screen.get_width(), yy=screen.get_height())
-            m = cairo.Matrix(*self.child.get_value('matrix')).multiply(m)
-            vars(self.outline).update(dict(x=0, y=0, x2=1, y2=1))
-            self.outline.transform(m, round, 1)
-            self.outline.hide()
-            self.outline.resize(self.spin_size.get_value_as_int())
-            if self.child.get_boolean('outline'):
-                self.outline.show_all()
-        else:
-            self.outline.move(self.spin_size.get_value_as_int())
+        matrix = cairo.Matrix(*self.child.get_value('matrix'))
+        self.outline.transform(matrix, screen.get_width(), screen.get_height())
+        self.outline.hide()
+        self.outline.resize(self.spin_size.get_value_as_int())
+        if self.child.get_boolean('outline'):
+            self.outline.show_all()
+        self.outline.move(self.spin_size.get_value_as_int())
+
+    def monitors_changed(self, screen):
+        self.outline.move(self.spin_size.get_value_as_int())
 
     def window_delete(self, widget, event):
         return widget.hide_on_delete()
@@ -219,20 +141,11 @@ class PointerConfig(Gtk.Application):
         self.child = self.settings.get_child(self.type)
 
         self.combo_rotation.set_active(self.child.get_enum('rotation'))
-        active = self.child.get_boolean('horizontal-bounds')
-        self.check_horizontal_bounds.set_active(active)
-        active = self.child.get_boolean('vertical-bounds')
-        self.check_vertical_bounds.set_active(active)
-        self.combo_monitors.set_active(self.child.get_enum('monitors'))
-        self.combo_action.set_active(self.child.get_enum('action'))
-
-        active = self.child.get_boolean('horizontal-margin')
-        self.check_horizontal_margin.set_active(active)
-        active = self.child.get_boolean('vertical-margin')
-        self.check_vertical_margin.set_active(active)
-        margin = Rectangle(*self.child.get_value('margin'))
-        self.spin_horizontal.set_value(margin.x2)
-        self.spin_vertical.set_value(margin.y2)
+        left, top, width, height = self.child.get_value('bounds')
+        self.spin_left.set_value(left)
+        self.spin_top.set_value(top)
+        self.spin_width.set_value(width)
+        self.spin_height.set_value(height)
 
         mode = bool(self.child.get_enum('mode'))
         self.radio_absolute.set_active(not mode)
@@ -245,12 +158,28 @@ class PointerConfig(Gtk.Application):
         self.reset_outline(self.screen)
         self.check_outline.set_active(self.child.get_boolean('outline'))
         rgba = Gdk.RGBA(*self.child.get_value('colour'))
-        self.button_colour.set_rgba(rgba)
         self.outline.override_background_color(Gtk.StateFlags.NORMAL, rgba)
+        self.button_colour.set_rgba(rgba)
         self.spin_size.set_value(self.child.get_uint('size'))
 
     def notebook_switch(self, notebook, page, page_num):
         self.button_apply.set_sensitive(page != self.grid_options)
+
+    def cursor_released(self, widget, event):
+        self.device = event.device
+
+    def cursor_clicked(self, widget):
+        device = vars(self).get('device', None)
+        if device:
+            _, x, y = device.get_position()
+            if self.check_left.get_active():
+                self.spin_left.set_value(x)
+            if self.check_top.get_active():
+                self.spin_top.set_value(y)
+            if self.check_width.get_active():
+                self.spin_width.set_value(x - self.spin_left.get_value())
+            if self.check_height.get_active():
+                self.spin_height.set_value(y - self.spin_top.get_value())
 
     def property_toggled(self, renderer, path):
         self.store_properties[path][0] = not self.store_properties[path][0]
@@ -300,6 +229,7 @@ class PointerConfig(Gtk.Application):
 
     def size_changed(self, spinbutton):
         self.outline.resize(spinbutton.get_value_as_int())
+        self.outline.move(spinbutton.get_value_as_int())
         self.child.set_uint('size', spinbutton.get_value_as_int())
 
     def about_clicked(self, widget):
@@ -320,126 +250,39 @@ class PointerConfig(Gtk.Application):
         arg = (None, None, icon.position_menu, icon, button, time)
         self.menu_status.popup(*arg)
 
-    def set_axis(self, name, n, n2, screen, mon, pick, rect):
-        if name == 'screen':
-            arg = {n:0, n2:screen}
-        elif name == 'many' or name == 'one':
-            arg = {n:mon[n], n2:mon[n2]}
-        elif name == 'margin' or name == 'position':
-            arg = {n:pick[n], n2:pick[n2]}
-        elif name == 'move':
-            return pick[n] - rect[n]
-        vars(rect).update(arg)
-        return 0.0
+    def apply_clicked(self, widget):
+        x, y = (self.spin_left.get_value(), self.spin_top.get_value())
+        width = self.spin_width.get_value()
+        height = self.spin_height.get_value()
+        horizontal = float(self.screen.get_width())
+        vertical = float(self.screen.get_height())
+        # Create matrix scaled and translated.
+        matrix = cairo.Matrix(
+            xx=width / horizontal, yy=height / vertical,
+            x0=x / horizontal, y0=y / vertical)
+        matrix.translate(0.5, 0.5)
 
-    def get_rect(self, name, x, y, rect, pick=None, mon=None):
-        rect = Rectangle(**vars(rect))
-        if x:
-            root = self.screen.get_width()
-            x = self.set_axis(name, 'x', 'x2', root, mon, pick, rect)
-        if y:
-            root = self.screen.get_height()
-            y = self.set_axis(name, 'y', 'y2', root, mon, pick, rect)
-        rect.transform(cairo.Matrix(x0=float(x), y0=float(y))) # translate
-        return rect
+        i = self.combo_rotation.get_active_iter()
+        radians = math.radians(self.store_rotation.get_value(i, 0))
+        cos, sin = (round(math.cos(radians)), round(math.sin(radians)))
+        matrix = cairo.Matrix(cos, -sin, sin, cos, 0, 0).multiply(matrix)
+        matrix.translate(-0.5, -0.5)
+        matrix = array.array('f', matrix).tolist()
 
-    def apply_matrix(self, rotate, bounds, margin, everything=True):
-        width = float(self.screen.get_width())
-        height = float(self.screen.get_height())
-        m = dict(xx=(bounds.width + margin.width) / width,
-                 yy=(bounds.height + margin.height) / height) # scale
-        m = cairo.Matrix(x0=(bounds.x + margin.x) / width,
-                         y0=(bounds.y + margin.y) / height, **m) # translate
-        m = array.array('f', rotate.multiply(m)).tolist()
-        params = get_params(m, self.radio_relative.get_active(),
-                            self.store_properties, everything)
-        device = self.manager.list_devices(Gdk.DeviceType.SLAVE)
-        call_xinput(device, {self.type:params})
-        return m
-
-    def write_settings(self, matrix, bounds, margin):
         self.child.delay()
         self.child.set_enum('rotation', self.combo_rotation.get_active())
-        active = self.check_horizontal_bounds.get_active()
-        self.child.set_boolean('horizontal-bounds', active)
-        active = self.check_vertical_bounds.get_active()
-        self.child.set_boolean('vertical-bounds', active)
-        self.child.set_enum('monitors', self.combo_monitors.get_active())
-        self.child.set_enum('action', self.combo_action.get_active())
-
-        active = self.check_horizontal_margin.get_active()
-        self.child.set_boolean('horizontal-margin', active)
-        active = self.check_vertical_margin.get_active()
-        self.child.set_boolean('vertical-margin', active)
-
+        arg = GLib.Variant('(iiuu)', (x, y, width, height))
+        self.child.set_value('bounds', arg)
         self.child.set_enum('mode', int(self.radio_relative.get_active()))
         arg = map(tuple, self.store_properties)
         self.child.set_value('property', GLib.Variant('a(bs)', arg))
-
         self.child.set_value('matrix', GLib.Variant('(dddddd)', tuple(matrix)))
-        arg = (bounds.x, bounds.y, bounds.x2, bounds.y2)
-        self.child.set_value('bounds', GLib.Variant('(dddd)', arg))
-        arg = (margin.x, margin.y, margin.x2, margin.y2)
-        self.child.set_value('margin', GLib.Variant('(dddd)', arg))
         self.child.apply()
+
+        params = get_params(self.child)
+        device = self.manager.list_devices(Gdk.DeviceType.SLAVE)
+        call_xinput(device, {self.type:params})
         self.reset_outline(self.screen)
-
-    def grab(self, name, x, y, rotate, bounds, margin, original):
-        device = Gtk.get_current_event_device()
-        msg = GrabDialog(self.window_main, name, device)
-        status = msg.run()
-        msg.destroy()
-        if status == Gtk.ResponseType.NONE:
-            self.dialog_failed.run()
-            self.dialog_failed.hide()
-        if status == Gtk.ResponseType.OK:
-            i = self.screen.get_monitor_at_point(msg.pick.x, msg.pick.y)
-            m = self.screen.get_monitor_geometry(i)
-            i = self.screen.get_monitor_at_point(msg.pick.x2, msg.pick.y2)
-            m2 = self.screen.get_monitor_geometry(i)
-            m = Rectangle(m.x, m.y, m2.x + m2.width, m2.y + m2.height)
-            rect = self.get_rect(name, x, y, bounds, msg.pick, m)
-            return (self.apply_matrix(rotate, rect, margin, False), rect)
-        return (self.apply_matrix(rotate, bounds, original, False), bounds)
-    
-    def apply_clicked(self, widget):
-        bounds = Rectangle(*self.child.get_value('bounds'))
-        margin = Rectangle(*self.child.get_value('margin'))
-        i = self.combo_rotation.get_active_iter()
-        next = self.store_rotation.get_value(i, 0)
-        diff = next - self.store_rotation[self.child.get_enum('rotation')][0]
-        x = bounds.x + bounds.width / 2.0
-        y = bounds.y + bounds.height / 2.0
-        bounds.transform(rotate_point(diff, x, y))
-        margin.transform(rotate_point(diff, 0.0, 0.0))
-
-        x = self.check_horizontal_margin.get_active()
-        y = self.check_vertical_margin.get_active()
-        h = self.spin_horizontal.get_value()
-        v = self.spin_vertical.get_value()
-        margin = self.get_rect('margin', x, y, margin, Rectangle(-h, -v, h, v)) 
-
-        x = self.check_horizontal_bounds.get_active()
-        y = self.check_vertical_bounds.get_active()
-        rotate = rotate_point(next, 0.5, 0.5)
-        if not x and not y:
-            matrix = self.apply_matrix(rotate, bounds, margin)
-            return self.write_settings(matrix, bounds, margin)
-
-        i = self.combo_monitors.get_active_iter()
-        mon = self.store_monitors.get_value(i, 0)
-        i = self.combo_action.get_active_iter()
-        act = self.store_action.get_value(i, 0)
-        mod = self.get_rect('screen', x, y, bounds)
-        rect = margin if mon == 'all' and act == 'scale' else Rectangle()
-        matrix = self.apply_matrix(rotate, mod, rect)
-
-        if mon != 'all':
-            rect = margin if act == 'scale' else Rectangle()
-            matrix, mod = self.grab(mon, x, y, rotate, bounds, rect, margin)
-        if act != 'scale' and mod != bounds:
-            matrix, mod = self.grab(act, x, y, rotate, bounds, margin, margin)
-        self.write_settings(matrix, mod, margin)
 
     def startup(self, application):
         self.display = Gdk.Display.get_default()
@@ -448,7 +291,7 @@ class PointerConfig(Gtk.Application):
         # device-added works in Gdk_test.py but not here
         # self.manager.connect('device-added', self.device_changed)
         # self.manager.connect('device-changed', self.device_changed)
-        self.screen.connect('monitors-changed', self.reset_outline, False)
+        self.screen.connect('monitors-changed', self.monitors_changed)
         self.screen.connect('size-changed', self.reset_outline)
 
         name = 'pointer-config'
@@ -476,16 +319,14 @@ class PointerConfig(Gtk.Application):
         builder.connect_signals(self)
 
         self.outline = Outline()
-        obj = ('window_main', 'store_type', 'grid_options', 'radio_absolute',
-               'radio_relative', 'combo_rotation', 'store_rotation',
-               'check_horizontal_bounds', 'check_vertical_bounds',
-               'combo_monitors', 'store_monitors', 'combo_action',
-               'store_action', 'check_horizontal_margin', 'spin_horizontal',
-               'check_vertical_margin', 'spin_vertical', 'tree_properties',
-               'store_properties', 'column_properties', 'text_properties',
-               'selection_properties', 'check_auto', 'check_outline',
-               'button_colour', 'spin_size', 'button_apply', 'menu_status',
-               'dialog_about', 'dialog_failed')
+        obj = ('window_main', 'store_type', 'combo_rotation', 'store_rotation',
+               'check_left', 'spin_left', 'check_top', 'spin_top',
+               'check_width', 'spin_width', 'check_height', 'spin_height',
+               'button_cursor', 'radio_absolute', 'radio_relative',
+               'tree_properties', 'store_properties', 'column_properties',
+               'text_properties', 'selection_properties', 'grid_options',
+               'check_auto', 'check_outline', 'button_colour', 'spin_size',
+               'button_apply', 'dialog_about', 'menu_status')
         for name in obj:
             setattr(self, name, builder.get_object(name))
 
@@ -495,7 +336,7 @@ class PointerConfig(Gtk.Application):
         for key, _ in self.store_type:
             child = self.settings.get_child(key)
             if child.get_boolean('auto'):
-                param[key] = get_params(None, None, None, schema=child)
+                param[key] = get_params(child)
         call_xinput(self.manager.list_devices(Gdk.DeviceType.SLAVE), param)
 
         self.add_window(self.window_main)

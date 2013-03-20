@@ -1,14 +1,14 @@
 # SOME DESCRIPTIVE TITLE.
-# Copyright (C) 2012 Daniel Miedzyblocki
+# Copyright (C) 2012, 2013 Daniel Miedzyblocki
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: pointer-config 0.0.1\n"
+"Project-Id-Version: pointer-config 0.0.2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-10-18 02:44+0800\n"
+"POT-Creation-Date: 2013-03-19 03:47+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,206 +17,158 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: pointer_config.py:41
-msgid "Click twice in separate monitor areas to select"
-msgstr ""
-
-#: pointer_config.py:42
-msgid "Click in monitor area to select"
-msgstr ""
-
-#: pointer_config.py:43
-msgid "Click once to move mapped area"
-msgstr ""
-
-#: pointer_config.py:44
-msgid "Click twice to position mapping"
-msgstr ""
-
-#: pointer_config.py:442 pointer-config.desktop.in.h:1
+#: pointer_config.py:304 pointer-config.desktop.h:1
 msgid "Pointer Config"
 msgstr ""
 
-#: pointer-config.desktop.in.h:2
-msgid "Configure pointer devices"
-msgstr ""
-
 #: pointer-config.glade.h:1
-msgid "Copyright (C) 2012 Daniel Miedzyblocki"
-msgstr ""
-
-#: pointer-config.glade.h:2
 msgid "Basic configurion for pointer devices using XInput"
 msgstr ""
 
-#: pointer-config.glade.h:4
+#: pointer-config.glade.h:3
 msgid "None"
 msgstr ""
 
-#: pointer-config.glade.h:5
-msgid "Device grab failed"
-msgstr ""
-
-#: pointer-config.glade.h:6
+#: pointer-config.glade.h:4
 msgid "_Show"
 msgstr ""
 
-#: pointer-config.glade.h:7
-msgid "Move"
-msgstr ""
-
-#: pointer-config.glade.h:8
-msgid "Position"
-msgstr ""
-
-#: pointer-config.glade.h:9
-msgid "Scale"
-msgstr ""
-
-#: pointer-config.glade.h:10
-msgid "All"
-msgstr ""
-
-#: pointer-config.glade.h:11
-msgid "Many"
-msgstr ""
-
-#: pointer-config.glade.h:12
-msgid "One"
-msgstr ""
-
-#: pointer-config.glade.h:13
+#: pointer-config.glade.h:5
 msgid "Normal"
 msgstr ""
 
-#: pointer-config.glade.h:14
+#: pointer-config.glade.h:6
 msgid "Counterclockwise"
 msgstr ""
 
-#: pointer-config.glade.h:15
+#: pointer-config.glade.h:7
 msgid "Clockwise"
 msgstr ""
 
-#: pointer-config.glade.h:16
+#: pointer-config.glade.h:8
 msgid "180 Degress"
 msgstr ""
 
-#: pointer-config.glade.h:17
+#: pointer-config.glade.h:9
 msgid "Mouse"
 msgstr ""
 
-#: pointer-config.glade.h:18
+#: pointer-config.glade.h:10
 msgid "Stylus"
 msgstr ""
 
-#: pointer-config.glade.h:19
+#: pointer-config.glade.h:11
 msgid "Eraser"
 msgstr ""
 
-#: pointer-config.glade.h:20
+#: pointer-config.glade.h:12
 msgid "Cursor"
 msgstr ""
 
-#: pointer-config.glade.h:21
+#: pointer-config.glade.h:13
 msgid "Touchscreen"
 msgstr ""
 
-#: pointer-config.glade.h:22
+#: pointer-config.glade.h:14
 msgid "Touchpad"
 msgstr ""
 
-#: pointer-config.glade.h:23
+#: pointer-config.glade.h:15
 msgid "Bounds"
 msgstr ""
 
-#: pointer-config.glade.h:24
-msgid "Horzontal"
+#: pointer-config.glade.h:16
+msgid "Left:"
 msgstr ""
 
-#: pointer-config.glade.h:25
-msgid "Vertical"
+#: pointer-config.glade.h:17
+msgid "Check to use cursor position"
 msgstr ""
 
-#: pointer-config.glade.h:26
-msgid "Monitors:"
+#: pointer-config.glade.h:18
+msgid "Top:"
 msgstr ""
 
-#: pointer-config.glade.h:27
-msgid "Action:"
-msgstr ""
-
-#: pointer-config.glade.h:28
+#: pointer-config.glade.h:19
 msgid "Rotation:"
 msgstr ""
 
-#: pointer-config.glade.h:29
-msgid "Margin"
+#: pointer-config.glade.h:20
+msgid "Width:"
 msgstr ""
 
-#: pointer-config.glade.h:30
-msgid "Horizontal:"
+#: pointer-config.glade.h:21
+msgid "Height:"
 msgstr ""
 
-#: pointer-config.glade.h:31
-msgid "Vertical:"
+#: pointer-config.glade.h:22
+msgid "_Use Cursor"
 msgstr ""
 
-#: pointer-config.glade.h:32
+#: pointer-config.glade.h:23
+msgid "Right click then press space to fill bounds"
+msgstr ""
+
+#: pointer-config.glade.h:24
 msgid "Mapping"
 msgstr ""
 
-#: pointer-config.glade.h:33
+#: pointer-config.glade.h:25
 msgid "Add"
 msgstr ""
 
-#: pointer-config.glade.h:34
+#: pointer-config.glade.h:26
 msgid "Remove"
 msgstr ""
 
-#: pointer-config.glade.h:35
+#: pointer-config.glade.h:27
 msgid "Edit"
 msgstr ""
 
-#: pointer-config.glade.h:36
+#: pointer-config.glade.h:28
 msgid "Mode"
 msgstr ""
 
-#: pointer-config.glade.h:37
+#: pointer-config.glade.h:29
 msgid "Absolute"
 msgstr ""
 
-#: pointer-config.glade.h:38
+#: pointer-config.glade.h:30
 msgid "Relative"
 msgstr ""
 
-#: pointer-config.glade.h:39
+#: pointer-config.glade.h:31
 msgid "Xinput properties and values:"
 msgstr ""
 
-#: pointer-config.glade.h:40
+#: pointer-config.glade.h:32
 msgid "Settings"
 msgstr ""
 
-#: pointer-config.glade.h:41
+#: pointer-config.glade.h:33
 msgid "Automatic configuration"
 msgstr ""
 
-#: pointer-config.glade.h:42
+#: pointer-config.glade.h:34
 msgid "Outline"
 msgstr ""
 
-#: pointer-config.glade.h:43
+#: pointer-config.glade.h:35
 msgid "Show"
 msgstr ""
 
-#: pointer-config.glade.h:44
+#: pointer-config.glade.h:36
 msgid "Colour:"
 msgstr ""
 
-#: pointer-config.glade.h:45
+#: pointer-config.glade.h:37
 msgid "Size:"
 msgstr ""
 
-#: pointer-config.glade.h:46
+#: pointer-config.glade.h:38
 msgid "Options"
+msgstr ""
+
+#: pointer-config.desktop.h:2
+msgid "Configure pointer devices"
 msgstr ""

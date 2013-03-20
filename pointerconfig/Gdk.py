@@ -1,4 +1,4 @@
-# Copyright (C) 2012 Daniel Miedzyblocki
+# Copyright (C) 2012, 2013 Daniel Miedzyblocki
 #
 # This file is part of Pointer Config.
 #
